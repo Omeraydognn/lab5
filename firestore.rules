@@ -1,0 +1,24 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Part 5: each user may read and write only their own notes.
+    // Everything else stays closed (no rule = denied).
+
+    match /users/{uid}/notes/{noteId} {
+      // The request is signed in and the path belongs to that user.
+      function isOwner() {
+        return request.auth != null && request.auth.uid == uid;
+      }
+
+      // The new note has a title that is a string with 1 to 100 characters.
+      function hasValidTitle() {
+        return request.resource.data.title is string
+          && request.resource.data.title.size() >= 1
+          && request.resource.data.title.size() <= 100;
+      }
+
+      allow read, delete: if isOwner();
+      allow create, update: if isOwner() && hasValidTitle();
+    }
+  }
+}
